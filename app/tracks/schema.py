@@ -22,12 +22,16 @@ class CreateTrack(graphene.Mutation):
         url = graphene.String()
     # def mutate(self, info, title, album, artist, description, url):
     def mutate(self, info, **kwargs):
-        track = Track(
+        user = info.context.user
+        if user.is_anonymous:
+            raise Exception("Please log in to add track")
+        track = Track (
             title=kwargs.get('title'),
             description=kwargs.get('description'),
             artist=kwargs.get('artist'),
             album=kwargs.get('album'),
-            url=kwargs.get('url')
+            url=kwargs.get('url'),
+            posted_by=user,
         )
         track.save()
         return CreateTrack(track=track)

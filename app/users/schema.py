@@ -8,10 +8,20 @@ class UserType(DjangoObjectType):
         only_fields = ('id', 'email', 'password', 'username')
 
 class Query(graphene.ObjectType):
-    user = graphene.Field(UserType, id=graphene.Int(required=True))
+    user = graphene.Field(
+        UserType,
+        id=graphene.Int(required=True)
+    )
+    me = graphene.Field(UserType)
 
     def resolve_user(self, info, id):
         return get_user_model().objects.get(id=id)
+
+    def resolve_me(self, info):
+        user = info.context.user
+        if user.is_anonymous:
+            raise Exception("401 Not logged in")
+        return user
 
 class CreateUser(graphene.Mutation):
     user = graphene.Field(UserType)

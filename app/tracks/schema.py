@@ -1,16 +1,25 @@
 import graphene
 from graphene_django import DjangoObjectType
-from .models import Track
+from .models import Track, Like
+from users.schema import UserType
 
 class TrackType(DjangoObjectType):
     class Meta:
         model = Track
 
+class LikeType(DjangoObjectType):
+    class Meta:
+        model = Like
+
 class Query(graphene.ObjectType):
     tracks = graphene.List(TrackType)
+    likes = graphene.List(LikeType)
 
     def resolve_tracks(self, info):
         return Track.objects.all()
+    
+    def resolve_likes(self, info):
+        return Like.objects.all()
 
 class CreateTrack(graphene.Mutation):
     track = graphene.Field(TrackType)
@@ -78,10 +87,32 @@ class DeleteTrack(graphene.Mutation):
 
         raise Exception("You do not have permission to delete this track")
 
+class CreateLike(graphene.Mutation):
+    user = graphene.Field(UserType)
+    track = graphene.Field(TrackType)
+
+    class Arguments:
+        track_id = graphene.Int(required=True)
+
+    def mutate(self, info, track_id):
+        user = info.context.user
+        if user.is_anonymous:
+            raise Exception("You must be logged in to like a track")
+
+        track = Track.objects.get(id=track_id)
+
+        Like.objects.create(
+            user=user,
+            track=track
+        )
+
+        return CreateLike(user=user, track=track)
+
 class Mutation(graphene.ObjectType):
     create_track = CreateTrack.Field()
     update_track = UpdateTrack.Field()
     delete_track = DeleteTrack.Field()
+    create_like = CreateLike.Field()
 
 
 def is_admin(user):

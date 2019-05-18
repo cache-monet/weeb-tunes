@@ -62,6 +62,27 @@ class UpdateTrack(graphene.Mutation):
         track.save()
         return UpdateTrack(track=track)
 
+class DeleteTrack(graphene.Mutation):
+    track_id = graphene.Int()
+
+    class Arguments:
+        track_id = graphene.Int(required=True)
+    
+    def mutate(self, info, track_id):
+        user = info.context.user
+        track = Track.objects.get(id=track_id)
+
+        if track.posted_by == user or is_admin(user):
+            track.delete()
+            return DeleteTrack(track_id=track_id)
+
+        raise Exception("You do not have permission to delete this track")
+
 class Mutation(graphene.ObjectType):
     create_track = CreateTrack.Field()
     update_track = UpdateTrack.Field()
+    delete_track = DeleteTrack.Field()
+
+
+def is_admin(user):
+    return user.username == "Remi"
